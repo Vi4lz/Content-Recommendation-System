@@ -1,0 +1,19 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore virtual environment
+venv/
+
+# Ignore IDE/project files
+.idea/
+.vscode/
+.DS_Store
+
+# Ignore environment/config files
+.env
+*.sqlite3
+
+# Ignore notebook checkpoints
+.ipynb_checkpoints/
