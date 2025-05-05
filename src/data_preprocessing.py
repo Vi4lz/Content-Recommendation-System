@@ -45,3 +45,27 @@ def merge_ratings_with_movies(ratings_df, movies_df):
         print(f"Error while merging the DataFrames: {e}")
         return None
 
+
+def aggregate_movie_ratings(merged_df, output_file='aggregated_movie_ratings.csv'):
+    """
+    Aggregates movie ratings by calculating the total number of ratings (vote_count)
+    and the average rating (vote_average) for each movie.
+
+    Saves the aggregated data to a CSV file.
+
+    Returns:
+        pd.DataFrame: A new DataFrame containing columns:
+                      - movieId
+                      - title
+                      - vote_count (number of ratings per movie)
+                      - vote_average (average rating per movie)
+    """
+    agg = merged_df.groupby(['movieId', 'title']).agg(
+        vote_count=('rating', 'count'),
+        vote_average=('rating', 'mean')
+    ).reset_index()
+
+    agg.to_csv(output_file, index=False)
+    print(f"Aggregated data saved to {output_file}.")
+    print(f"Aggregated {agg.shape[0]} movies with calculated rating statistics.")
+    return agg
