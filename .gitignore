@@ -17,3 +17,5 @@ venv/
 
 # Ignore notebook checkpoints
 .ipynb_checkpoints/
+
+data/
