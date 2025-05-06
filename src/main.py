@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from data_preprocessing import load_all_csv_files, merge_ratings_with_movies, aggregate_movie_ratings
+from model import get_top_movies
 
 aggregated_file = '../data/aggregated_movie_ratings.csv'
 
@@ -26,4 +27,7 @@ else:
         aggregated_movies = None
 
 if aggregated_movies is not None:
-    print(aggregated_movies.head().to_string())
+    top_10 = get_top_movies(aggregated_movies, top_n=10)
+    print(top_10.to_string(index=False))
+
+

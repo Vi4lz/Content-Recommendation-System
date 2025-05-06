@@ -8,7 +8,8 @@ def load_all_csv_files(data_dir='../data'):
     - key: file name without the .csv extension
     - value: a specific pandas DataFrame
     Returns:
-        datasets from the given directory
+        dict[str, pd.DataFrame]: A dictionary where keys are filenames (without .csv extension)
+                                 and values are the corresponding pandas DataFrames.
     """
 
     datasets = {}
@@ -69,3 +70,5 @@ def aggregate_movie_ratings(merged_df, output_file='aggregated_movie_ratings.csv
     print(f"Aggregated data saved to {output_file}.")
     print(f"Aggregated {agg.shape[0]} movies with calculated rating statistics.")
     return agg
+
+
