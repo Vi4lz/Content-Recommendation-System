@@ -5,6 +5,8 @@ from model import get_top_movies
 
 aggregated_file = '../data/aggregated_movie_ratings.csv'
 
+TOP_N = 15
+
 if os.path.exists(aggregated_file):
     print(f"Found existing aggregated file: {aggregated_file}")
     aggregated_movies = pd.read_csv(aggregated_file)
@@ -27,7 +29,7 @@ else:
         aggregated_movies = None
 
 if aggregated_movies is not None:
-    top_10 = get_top_movies(aggregated_movies, top_n=10)
-    print(top_10.to_string(index=False))
+    top_movies = get_top_movies(aggregated_movies, top_n=TOP_N)
+    print(top_movies.to_string(index=False))
 
 

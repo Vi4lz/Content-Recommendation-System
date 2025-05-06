@@ -1,4 +1,7 @@
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_top_movies(df, top_n=10, percentile=0.90):
     """
@@ -13,23 +16,23 @@ def get_top_movies(df, top_n=10, percentile=0.90):
         pd.DataFrame: Top N movies sorted by weighted rating.
     """
     if df.empty:
-        print("Input DataFrame is empty.")
+        logger.warning("Input DataFrame is empty. Returning empty result.")
         return pd.DataFrame()
 
     C = df['vote_average'].mean()    # mean rating across all movies
     m = df['vote_count'].quantile(percentile)   # number of votes received by a movie in the percentile param.
 
-    has_enough_votes = df['vote_count'] >= m
+    has_enough_votes = df['vote_count'] >= m   # condition to filter out movies having greater than equal to given percent vote counts.
     qualified = df[has_enough_votes].copy()   # new independent df with calculations.
 
     if qualified.empty:
-        print("No movies meet the minimum vote count threshold.")
+        logger.warning("No movies meet the minimum vote count threshold.")
         return pd.DataFrame()
 
     def weighted_rating(x, m=m, C=C):
         v = x['vote_count']
         R = x['vote_average']
-        return (v / (v+m) * R) + (m / (v + m) * C)   # imdb weighted rating formula.
+        return (v / (v+m) * R) + (m / (v + m) * C)   # Applies IMDb weighted rating formula to a single movie.
 
     qualified['weighted_rating'] = qualified.apply(weighted_rating, axis=1)
     top_movies = qualified.sort_values('weighted_rating', ascending=False).head(top_n)
