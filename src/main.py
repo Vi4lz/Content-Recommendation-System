@@ -1,35 +1,19 @@
-import os
-import pandas as pd
-from data_preprocessing import load_all_csv_files, merge_ratings_with_movies, aggregate_movie_ratings
+from data_preprocessing import (
+    load_or_create_aggregated_movies,
+    load_or_create_movies_with_tags
+)
 from model import get_top_movies
 
 aggregated_file = '../data/aggregated_movie_ratings.csv'
+movies_with_tags_file = '../data/movies_with_tags.csv'
 
-TOP_N = 15
-
-if os.path.exists(aggregated_file):
-    print(f"Found existing aggregated file: {aggregated_file}")
-    aggregated_movies = pd.read_csv(aggregated_file)
-else:
-    print("Aggregated file not found. Loading full datasets...")
-    datasets = load_all_csv_files('../data')
-
-    if 'movies' in datasets and 'ratings' in datasets:
-        movies_df = datasets['movies']
-        ratings_df = datasets['ratings']
-
-        merged_data = merge_ratings_with_movies(ratings_df, movies_df)
-
-        if merged_data is not None:
-            aggregated_movies = aggregate_movie_ratings(merged_data, output_file=aggregated_file)
-        else:
-            aggregated_movies = None
-    else:
-        print("Required datasets (movies, ratings) are missing!")
-        aggregated_movies = None
+aggregated_movies = load_or_create_aggregated_movies('../data', aggregated_file)
+movies_with_tags = load_or_create_movies_with_tags('../data', movies_with_tags_file)
 
 if aggregated_movies is not None:
-    top_movies = get_top_movies(aggregated_movies, top_n=TOP_N)
+    top_movies = get_top_movies(aggregated_movies, top_n=15)
     print(top_movies.to_string(index=False))
 
 
+if movies_with_tags is not None:
+    print(movies_with_tags.head().to_string())
