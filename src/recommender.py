@@ -67,7 +67,7 @@ def compute_tfidf_matrix(df, column='overview'):
     return tfidf_matrix
 
 
-def compute_cosine_cimilarity_matrix(tfidf_matrix):
+def compute_cosine_similarity_matrix(tfidf_matrix):
     """
     [DEVELOPMENT USE ONLY]
     Compute a cosine similarity matrix from a TF-IDF matrix.
@@ -85,3 +85,34 @@ def compute_cosine_cimilarity_matrix(tfidf_matrix):
           f"\n{cosine_sim[1]}")
 
     return cosine_sim
+
+
+
+def get_recommendations(title, cosine_sim, indices, metadata, top_n=10):
+    """
+    Given a movie title, returns the top N most similar movies based on cosine similarity.
+
+    Args:
+        title (str): The title of the movie.
+        cosine_sim (pd.DataFrame): The cosine similarity matrix.
+        indices (pd.Series): A series that maps movie titles to their corresponding indices.
+        metadata (pd.DataFrame): The dataframe containing the movie metadata.
+        top_n (int): The number of top recommendations to return.
+
+    Returns:
+        pd.DataFrame: The top N recommended movies and their similarity scores.
+    """
+    if title not in indices:
+        print(f"Movie '{title}' not found.")
+        return None
+
+    idx = indices[title]  # Get the index of the input movie title
+    sim_scores = list(enumerate(cosine_sim[idx]))  # Get pairwise similarity scores of all movies with that movie
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)  # Sort movies based on similarity score
+    sim_scores = sim_scores[1:top_n + 1]  # Get top N most similar movies (exclude the movie itself)
+
+    # Get the movie indices
+    movie_indices = [i[0] for i in sim_scores]
+
+    # Return the titles of the top N most similar movies
+    return metadata['title'].iloc[movie_indices]
