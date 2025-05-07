@@ -22,7 +22,10 @@ def load_all_csv_files(data_dir='../data'):
         if file_name.endswith('.csv'):
             file_path = os.path.join(data_dir, file_name)
             try:
-                df = pd.read_csv(file_path)
+                if file_name == 'movies_metadata.csv':
+                    df = pd.read_csv(file_path, low_memory=False)
+                else:
+                    df = pd.read_csv(file_path)
                 key_name = file_name.replace('.csv', '')
                 datasets[key_name] = df
                 print(f"Loaded: {file_name} ({df.shape[0]} rows., {df.shape[1]} columns.)")
@@ -72,26 +75,6 @@ def aggregate_movie_ratings(merged_df, output_file='aggregated_movie_ratings.csv
     return agg
 
 
-def merge_movies_with_tags(movies_df, tags_df):
-    """
-    Merges movies and tags DataFrames on 'movieId'.
-    Tags are grouped and concatenated into a single string per movie.
-    Returns:
-        pd.DataFrame: A merged DataFrame containing movie details and concatenated tags.
-    """
-    if movies_df.empty or tags_df.empty:
-        print("One or both input DataFrames are empty.")
-        return pd.DataFrame()
-
-    grouped = tags_df.groupby('movieId')['tag']
-    tags_grouped = grouped.apply(lambda tags: ' '.join(str(tag) for tag in tags)).reset_index()
-
-    merged_df = pd.merge(movies_df, tags_grouped, on='movieId', how='left')
-
-    print(f"Merged movies and tags: {merged_df.shape[0]} rows, {merged_df.shape[1]} columns.")
-    return merged_df
-
-
 def load_or_create_aggregated_movies(data_dir, output_file):
     """
     Loads the aggregated movie ratings file if it exists, or creates it by merging
@@ -112,23 +95,3 @@ def load_or_create_aggregated_movies(data_dir, output_file):
         print("Missing ratings or movies data.")
         return None
 
-
-def load_or_create_movies_with_tags(data_dir, output_file):
-    """
-    Loads the movies with tags file if it exists, or creates it by merging the movies and tags data.
-    """
-    if os.path.exists(output_file):
-        print(f"Loaded existing movies with tags file: {output_file}")
-        return pd.read_csv(output_file)
-
-    datasets = load_all_csv_files(data_dir)
-    movies = datasets.get('movies')
-    tags = datasets.get('tags')
-
-    if movies is not None and tags is not None:
-        merged = merge_movies_with_tags(movies, tags)
-        merged.to_csv(output_file, index=False)
-        return merged
-    else:
-        print("Missing movies or tags data.")
-        return None
