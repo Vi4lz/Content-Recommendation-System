@@ -81,8 +81,6 @@ def compute_cosine_similarity_matrix(tfidf_matrix):
         raise ValueError("TF-IDF matrix is empty or None.")
 
     cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
-    print(f"An example array of the Cosine similarity matrix: "
-          f"\n{cosine_sim[1]}")
 
     return cosine_sim
 

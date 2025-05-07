@@ -1,5 +1,8 @@
 import os
 import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
 
 def load_all_csv_files(data_dir='../data'):
     """
@@ -95,3 +98,33 @@ def load_or_create_aggregated_movies(data_dir, output_file):
         print("Missing ratings or movies data.")
         return None
 
+
+def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
+    try:
+        if not os.path.exists(metadata_path):
+            print(f"Error: {metadata_path} not found!")
+            return None
+        if not os.path.exists(credits_path):
+            print(f"Error: {credits_path} not found!")
+            return None
+        if not os.path.exists(keywords_path):
+            print(f"Error: {keywords_path} not found!")
+            return None
+
+        metadata = pd.read_csv(metadata_path, low_memory=False)
+        credits = pd.read_csv(credits_path)
+        keywords = pd.read_csv(keywords_path)
+
+        metadata = metadata.drop([19730, 29503, 35587])
+        keywords['id'] = keywords['id'].astype('int')
+        credits['id'] = credits['id'].astype('int')
+        metadata['id'] = metadata['id'].astype('int')
+
+        metadata = metadata.merge(credits, on='id', how='left')
+        metadata = metadata.merge(keywords, on='id', how='left')
+
+        print("Successfully merged metadata, credits, and keywords.")
+        return metadata
+    except Exception as e:
+        print(f"Error loading and merging datasets: {e}")
+        raise
