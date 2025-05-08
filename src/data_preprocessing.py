@@ -109,6 +109,20 @@ def safe_literal_eval(val):
             return []
     return []
 
+def clean_data(x):
+    if isinstance(x, list):
+        # remove spaces and concert to lowercase for each item in the list.
+        return [str.lower(i.replace(" ", "")) for i in x if isinstance(i, str)]
+    elif isinstance(x, str):
+        # clean a single string value (director name).
+        return str.lower(x.replace(" ", ""))
+    else:
+        return ''  # return empty string for invalid types
+
+# function to create 'soup' by combining cast, keywords, director, and genres
+def create_soup(x):
+    return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
+
 def get_director(x):
     for i in x:
         if i['job'] == 'Director':
@@ -157,6 +171,12 @@ def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
         features = ['cast', 'keywords', 'genres']     # keep only top 3 cast/keywords/genres
         for feature in features:
             metadata[feature] = metadata[feature].apply(get_list)
+
+        clean_features = ['cast', 'keywords', 'director', 'genres']   # apply clean_data function
+        for feature in clean_features:
+            metadata[feature] = metadata[feature].apply(clean_data)
+
+        metadata['soup'] = metadata.apply(create_soup, axis=1)  # create soup
 
         print("Metadata loaded, merged, parsed and processed.")
         return metadata
