@@ -46,4 +46,4 @@ if recommended_movies is not None:
 #     top_movies = get_top_movies(aggregated_movies, top_n=15)
 #     print(top_movies.to_string(index=False))
 
-print(metadata.head(2).to_string())
+print(metadata[['title', 'cast', 'director', 'keywords', 'genres']].head(3).to_string(index=False))

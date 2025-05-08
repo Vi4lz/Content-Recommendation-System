@@ -1,6 +1,8 @@
 import os
 import pandas as pd
+import numpy as np
 import logging
+from ast import literal_eval
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +101,28 @@ def load_or_create_aggregated_movies(data_dir, output_file):
         return None
 
 
+def safe_literal_eval(val):
+    if isinstance(val, str):
+        try:
+            return literal_eval(val)
+        except (ValueError, SyntaxError):
+            return []
+    return []
+
+def get_director(x):
+    for i in x:
+        if i['job'] == 'Director':
+            return i['name']
+    return np.nan
+
+def get_list(x):
+    if isinstance(x, list):
+        names = [i['name'] for i in x]
+        if len(names) > 3:
+            names = names[:3]
+        return names
+    return []
+
 def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
     try:
         if not os.path.exists(metadata_path):
@@ -115,7 +139,8 @@ def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
         credits = pd.read_csv(credits_path)
         keywords = pd.read_csv(keywords_path)
 
-        metadata = metadata.drop([19730, 29503, 35587])
+        metadata = metadata.drop([19730, 29503, 35587], errors='ignore')
+
         keywords['id'] = keywords['id'].astype('int')
         credits['id'] = credits['id'].astype('int')
         metadata['id'] = metadata['id'].astype('int')
@@ -123,8 +148,19 @@ def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
         metadata = metadata.merge(credits, on='id', how='left')
         metadata = metadata.merge(keywords, on='id', how='left')
 
-        print("Successfully merged metadata, credits, and keywords.")
+        features = ['cast', 'crew', 'keywords', 'genres']  # parse stringified fields
+        for feature in features:
+            metadata[feature] = metadata[feature].apply(safe_literal_eval)
+
+        metadata['director'] = metadata['crew'].apply(get_director)   # extract director
+
+        features = ['cast', 'keywords', 'genres']     # keep only top 3 cast/keywords/genres
+        for feature in features:
+            metadata[feature] = metadata[feature].apply(get_list)
+
+        print("Metadata loaded, merged, parsed and processed.")
         return metadata
+
     except Exception as e:
-        print(f"Error loading and merging datasets: {e}")
+        print(f"Error loading and processing datasets: {e}")
         raise
