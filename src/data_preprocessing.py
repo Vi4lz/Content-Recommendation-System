@@ -1,10 +1,10 @@
 import os
 import pandas as pd
-import numpy as np
-import logging
 from ast import literal_eval
+from data_cleaning import clean_data, get_list, get_director
+from logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging()
 
 def load_all_csv_files(data_dir='../data'):
     """
@@ -20,7 +20,7 @@ def load_all_csv_files(data_dir='../data'):
     datasets = {}
 
     if not os.path.exists(data_dir):
-        print(f"Directory {data_dir} does not exist.")
+        logger.error(f"Directory {data_dir} does not exist.")
         return {}
 
     for file_name in os.listdir(data_dir):
@@ -33,9 +33,9 @@ def load_all_csv_files(data_dir='../data'):
                     df = pd.read_csv(file_path)
                 key_name = file_name.replace('.csv', '')
                 datasets[key_name] = df
-                print(f"Loaded: {file_name} ({df.shape[0]} rows., {df.shape[1]} columns.)")
+                logger.info(f"Loaded: {file_name} ({df.shape[0]} rows, {df.shape[1]} columns.)")
             except Exception as e:
-                print(f"Error reading {file_name} ({file_path}): {e}")
+                logger.error(f"Error reading {file_name} ({file_path}): {e}")
 
     return datasets
 
@@ -48,10 +48,10 @@ def merge_ratings_with_movies(ratings_df, movies_df):
     """
     try:
         merged = pd.merge(ratings_df, movies_df, on='movieId', how='left')
-        print(f"Merged table: {merged.shape[0]} rows, {merged.shape[1]} columns.")
+        logger.info(f"Merged table: {merged.shape[0]} rows, {merged.shape[1]} columns.")
         return merged
     except Exception as e:
-        print(f"Error while merging the DataFrames: {e}")
+        logger.error(f"Error while merging the DataFrames: {e}")
         return None
 
 
@@ -75,8 +75,8 @@ def aggregate_movie_ratings(merged_df, output_file='aggregated_movie_ratings.csv
     ).reset_index()
 
     agg.to_csv(output_file, index=False)
-    print(f"Aggregated data saved to {output_file}.")
-    print(f"Aggregated {agg.shape[0]} movies with calculated rating statistics.")
+    logger.info(f"Aggregated data saved to {output_file}.")
+    logger.info(f"Aggregated {agg.shape[0]} movies with calculated rating statistics.")
     return agg
 
 
@@ -86,7 +86,7 @@ def load_or_create_aggregated_movies(data_dir, output_file):
     the ratings and movies data.
     """
     if os.path.exists(output_file):
-        print(f"Found existing aggregated file: {output_file}")
+        logger.info(f"Found existing aggregated file: {output_file}")
         return pd.read_csv(output_file)
 
     datasets = load_all_csv_files(data_dir)
@@ -97,7 +97,7 @@ def load_or_create_aggregated_movies(data_dir, output_file):
         merged = merge_ratings_with_movies(ratings, movies)
         return aggregate_movie_ratings(merged, output_file) if merged is not None else None
     else:
-        print("Missing ratings or movies data.")
+        logger.error("Missing ratings or movies data.")
         return None
 
 
@@ -109,44 +109,22 @@ def safe_literal_eval(val):
             return []
     return []
 
-def clean_data(x):
-    if isinstance(x, list):
-        # remove spaces and concert to lowercase for each item in the list.
-        return [str.lower(i.replace(" ", "")) for i in x if isinstance(i, str)]
-    elif isinstance(x, str):
-        # clean a single string value (director name).
-        return str.lower(x.replace(" ", ""))
-    else:
-        return ''  # return empty string for invalid types
 
 # function to create 'soup' by combining cast, keywords, director, and genres
 def create_soup(x):
     return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
 
-def get_director(x):
-    for i in x:
-        if i['job'] == 'Director':
-            return i['name']
-    return np.nan
-
-def get_list(x):
-    if isinstance(x, list):
-        names = [i['name'] for i in x]
-        if len(names) > 3:
-            names = names[:3]
-        return names
-    return []
 
 def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
     try:
         if not os.path.exists(metadata_path):
-            print(f"Error: {metadata_path} not found!")
+            logger.error(f"Error: {metadata_path} not found!")
             return None
         if not os.path.exists(credits_path):
-            print(f"Error: {credits_path} not found!")
+            logger.error(f"Error: {credits_path} not found!")
             return None
         if not os.path.exists(keywords_path):
-            print(f"Error: {keywords_path} not found!")
+            logger.error(f"Error: {keywords_path} not found!")
             return None
 
         metadata = pd.read_csv(metadata_path, low_memory=False)
@@ -178,9 +156,9 @@ def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
 
         metadata['soup'] = metadata.apply(create_soup, axis=1)  # create soup
 
-        print("Metadata loaded, merged, parsed and processed.")
+        logger.info("Metadata loaded, merged, parsed and processed.")
         return metadata
 
     except Exception as e:
-        print(f"Error loading and processing datasets: {e}")
+        logger.error(f"Error loading and processing datasets: {e}")
         raise

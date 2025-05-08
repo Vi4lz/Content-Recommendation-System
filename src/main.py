@@ -5,6 +5,9 @@ from sklearn.neighbors import NearestNeighbors
 from data_preprocessing import load_and_merge_metadata
 from utils import save_model, load_model
 from recommender import get_recommendations
+from logging_config import setup_logging
+
+logger = setup_logging()
 
 def main():
     """
@@ -26,7 +29,7 @@ def main():
     metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path)
 
     if metadata is None or metadata.empty:
-        print("[ERROR] Failed to load metadata.")
+        logger.error(" Failed to load metadata.")
         return
 
     # Create reverse index
@@ -49,15 +52,15 @@ def main():
     # Request recommendations
     title = "The Dark Knight Rises"
     if title not in indices:
-        print(f"[WARN] Movie '{title}' not found in dataset.")
+        logger.warning(f" Movie '{title}' not found in dataset.")
         return
 
-    print(f"\n[INFO] Generating recommendations for: {title}\n")
+    logger.info(f"\nGenerating recommendations for: {title}\n")
     recommendations = get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=10)
 
     # Print results
-    print("[RECOMMENDATIONS]")
-    print(recommendations.to_string(index=False))
+    logger.info("[RECOMMENDATIONS]")
+    logger.info(recommendations.to_string(index=False))
 
 
 if __name__ == "__main__":

@@ -1,10 +1,9 @@
 import pandas as pd
-import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from utils import save_model, load_model
-import logging
+from logging_config import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging()
 
 
 def get_top_movies(df, top_n=10, percentile=0.90):
@@ -71,7 +70,7 @@ def get_or_train_model(count_matrix, model_path):
     """
     model = load_model(model_path)
     if model is None:
-        print("[INFO] No pre-trained model found. Training now...")
+        logger.info("No pre-trained model found. Training now...")
         model = train_model(count_matrix)
         save_model(model, model_path)
     return model
@@ -93,7 +92,7 @@ def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=
         pd.Series: Titles of the recommended movies.
     """
     if title not in indices:
-        print(f"[WARN] Movie '{title}' not found in dataset.")
+        logger.warning(f" Movie '{title}' not found in dataset.")
         return pd.Series(dtype=str)
 
     idx = indices[title]
