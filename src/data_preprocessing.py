@@ -48,7 +48,7 @@ def merge_ratings_with_movies(ratings_df, movies_df):
     """
     try:
         merged = pd.merge(ratings_df, movies_df, on='movieId', how='left')
-        logger.info(f"Merged table: {merged.shape[0]} rows, {merged.shape[1]} columns.")
+        logger.info(f"Merged ratings and movies tables: {merged.shape[0]} rows, {merged.shape[1]} columns.")
         return merged
     except Exception as e:
         logger.error(f"Error while merging the DataFrames: {e}")
@@ -115,8 +115,12 @@ def create_soup(x):
     return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
 
 
-def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
+def load_and_merge_metadata(metadata_path, credits_path, keywords_path, merged_cache_path='merged_metadata.parquet'):
     try:
+        if os.path.exists(merged_cache_path):
+            logger.info(f"Found cached merged metadata at: {merged_cache_path}")
+            return pd.read_csv(merged_cache_path)
+
         if not os.path.exists(metadata_path):
             logger.error(f"Error: {metadata_path} not found!")
             return None
@@ -140,23 +144,22 @@ def load_and_merge_metadata(metadata_path, credits_path, keywords_path):
         metadata = metadata.merge(credits, on='id', how='left')
         metadata = metadata.merge(keywords, on='id', how='left')
 
-        features = ['cast', 'crew', 'keywords', 'genres']  # parse stringified fields
+        features = ['cast', 'crew', 'keywords', 'genres']
         for feature in features:
             metadata[feature] = metadata[feature].apply(safe_literal_eval)
 
-        metadata['director'] = metadata['crew'].apply(get_director)   # extract director
+        metadata['director'] = metadata['crew'].apply(get_director)
 
-        features = ['cast', 'keywords', 'genres']     # keep only top 3 cast/keywords/genres
-        for feature in features:
+        for feature in ['cast', 'keywords', 'genres']:
             metadata[feature] = metadata[feature].apply(get_list)
 
-        clean_features = ['cast', 'keywords', 'director', 'genres']   # apply clean_data function
-        for feature in clean_features:
+        for feature in ['cast', 'keywords', 'director', 'genres']:
             metadata[feature] = metadata[feature].apply(clean_data)
 
-        metadata['soup'] = metadata.apply(create_soup, axis=1)  # create soup
+        metadata['soup'] = metadata.apply(create_soup, axis=1)
 
-        logger.info("Metadata loaded, merged, parsed and processed.")
+        metadata.to_csv(merged_cache_path, index=False)
+        logger.info(f"Merged metadata processed and saved to {merged_cache_path}")
         return metadata
 
     except Exception as e:

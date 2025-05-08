@@ -2,9 +2,9 @@ import os
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import NearestNeighbors
-from data_preprocessing import load_and_merge_metadata
+from data_preprocessing import load_and_merge_metadata, load_or_create_aggregated_movies
 from utils import save_model, load_model
-from recommender import get_recommendations
+from recommender import get_recommendations, get_top_movies
 from logging_config import setup_logging
 
 logger = setup_logging()
@@ -18,6 +18,7 @@ def main():
     # Define base paths
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, '../data')
+    MERGED_CACHE_PATH = os.path.join(DATA_DIR, 'merged_metadata.csv')
     MODEL_PATH = os.path.join(DATA_DIR, 'nn_model.joblib')
     MATRIX_PATH = os.path.join(DATA_DIR, 'count_matrix.joblib')
 
@@ -26,11 +27,23 @@ def main():
     credits_path = os.path.join(DATA_DIR, 'credits.csv')
     keywords_path = os.path.join(DATA_DIR, 'keywords.csv')
 
-    metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path)
+    metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path, MERGED_CACHE_PATH)
 
     if metadata is None or metadata.empty:
         logger.error(" Failed to load metadata.")
         return
+
+        # Step 2: Create aggregated movie ratings or load existing data
+    aggregated_movies = load_or_create_aggregated_movies(DATA_DIR, os.path.join(DATA_DIR, 'aggregated_movie_ratings.csv'))
+
+    if aggregated_movies is None or aggregated_movies.empty:
+        logger.error("Failed to aggregate movie ratings.")
+        return
+
+    # Step 3: Get top movies based on IMDb-style weighted rating
+    top_movies = get_top_movies(aggregated_movies)
+    logger.info("Top Movies based on weighted rating:")
+    logger.info(top_movies.head(10).to_string(index=False))  # Printing top 10
 
     # Create reverse index
     indices = pd.Series(metadata.index, index=metadata['title']).drop_duplicates()
