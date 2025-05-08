@@ -1,16 +1,20 @@
 import pandas as pd
+import numpy as np
+from sklearn.neighbors import NearestNeighbors
+from utils import save_model, load_model
 import logging
 
 logger = logging.getLogger(__name__)
 
+
 def get_top_movies(df, top_n=10, percentile=0.90):
     """
-     Returns the top N movies ranked by IMDb-style weighted rating.
+    Returns the top N movies ranked by IMDb-style weighted rating.
 
-    Parameters:
-        df (pd.DataFrame): Aggregated movie ratings with 'vote_count' and 'vote_average'.
-        top_n (int): Number of top movies to return.
-        percentile (float): Percentile to determine minimum vote count (m).
+    Args:
+        df (pd.DataFrame): DataFrame containing at least 'vote_count' and 'vote_average'.
+        top_n (int): Number of top-rated movies to return.
+        percentile (float): Minimum vote count threshold (percentile-based).
 
     Returns:
         pd.DataFrame: Top N movies sorted by weighted rating.
@@ -19,10 +23,10 @@ def get_top_movies(df, top_n=10, percentile=0.90):
         logger.warning("Input DataFrame is empty. Returning empty result.")
         return pd.DataFrame()
 
-    C = df['vote_average'].mean()    # mean rating across all movies
-    m = df['vote_count'].quantile(percentile)   # number of votes received by a movie in the percentile param.
-    has_enough_votes = df['vote_count'] >= m   # condition to filter out movies having greater than equal to given percent vote counts.
-    qualified = df[has_enough_votes].copy()   # new independent df with calculations.
+    C = df['vote_average'].mean()
+    m = df['vote_count'].quantile(percentile)
+
+    qualified = df[df['vote_count'] >= m].copy()
 
     if qualified.empty:
         logger.warning("No movies meet the minimum vote count threshold.")
@@ -31,36 +35,68 @@ def get_top_movies(df, top_n=10, percentile=0.90):
     def weighted_rating(x, m=m, C=C):
         v = x['vote_count']
         R = x['vote_average']
-        return (v / (v+m) * R) + (m / (v + m) * C)   # Applies IMDb weighted rating formula to a single movie.
+        return (v / (v + m) * R) + (m / (v + m) * C)
 
     qualified['weighted_rating'] = qualified.apply(weighted_rating, axis=1)
-    top_movies = qualified.sort_values('weighted_rating', ascending=False).head(top_n)
+    return qualified.sort_values('weighted_rating', ascending=False).head(top_n)[
+        ['title', 'vote_count', 'vote_average', 'weighted_rating']
+    ]
 
-    return top_movies[['title', 'vote_count', 'vote_average', 'weighted_rating']]
 
-def get_recommendations(title, cosine_sim, indices, metadata, top_n=10):
+def train_model(count_matrix):
     """
-    Given a movie title, returns the top N most similar movies based on cosine similarity.
+    Trains a NearestNeighbors model using the given count matrix.
 
     Args:
-        title (str): The title of the movie.
-        cosine_sim (pd.DataFrame): The cosine similarity matrix.
-        indices (pd.Series): A series that maps movie titles to their corresponding indices.
-        metadata (pd.DataFrame): The dataframe containing the movie metadata.
-        top_n (int): The number of top recommendations to return.
+        count_matrix (csr_matrix): CountVectorizer matrix of the 'soup' field.
 
     Returns:
-        pd.DataFrame: The top N recommended movies and their similarity scores.
+        NearestNeighbors: Trained nearest neighbor model.
+    """
+    model = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=11, n_jobs=-1)
+    model.fit(count_matrix)
+    return model
+
+
+def get_or_train_model(count_matrix, model_path):
+    """
+    Loads a trained NearestNeighbors model if it exists; otherwise trains and saves a new one.
+
+    Args:
+        count_matrix (csr_matrix): CountVectorizer matrix.
+        model_path (str): File path to store/load the trained model.
+
+    Returns:
+        NearestNeighbors: Trained model.
+    """
+    model = load_model(model_path)
+    if model is None:
+        print("[INFO] No pre-trained model found. Training now...")
+        model = train_model(count_matrix)
+        save_model(model, model_path)
+    return model
+
+
+def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=10):
+    """
+    Returns a list of top N movie recommendations based on a given title.
+
+    Args:
+        title (str): Movie title to base recommendations on.
+        nn_model (NearestNeighbors): Trained NearestNeighbors model.
+        metadata (pd.DataFrame): DataFrame with movie metadata.
+        indices (pd.Series): Series mapping movie titles to their DataFrame indices.
+        count_matrix (csr_matrix): CountVectorizer matrix used during training.
+        top_n (int): Number of recommendations to return.
+
+    Returns:
+        pd.Series: Titles of the recommended movies.
     """
     if title not in indices:
-        print(f"Movie '{title}' not found.")
-        return None
+        print(f"[WARN] Movie '{title}' not found in dataset.")
+        return pd.Series(dtype=str)
 
-    idx = indices[title]  # Get the index of the input movie title
-    sim_scores = list(enumerate(cosine_sim[idx]))  # Get pairwise similarity scores of all movies with that movie
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)  # Sort movies based on similarity score
-    sim_scores = sim_scores[1:top_n + 1]  # Get top N most similar movies (exclude the movie itself)
-    movie_indices = [i[0] for i in sim_scores] # Get the movie indices
-
-    # Return the titles of the top N most similar movies
-    return metadata['title'].iloc[movie_indices]
+    idx = indices[title]
+    distances, neighbor_indices = nn_model.kneighbors(count_matrix[idx], n_neighbors=top_n + 1)
+    recommended_indices = neighbor_indices.flatten()[1:]  # Exclude the queried movie itself
+    return metadata['title'].iloc[recommended_indices]

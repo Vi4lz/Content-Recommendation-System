@@ -1,80 +1,64 @@
-import pandas as pd
 import os
-from data_preprocessing import load_and_merge_metadata, clean_data, create_soup
-from recommender import get_top_movies, get_recommendations
-from vectorizers import compute_tfidf_matrix, compute_count_vector_matrix, compute_cosine_similarity_matrix
-from utils import save_joblib, load_joblib
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.neighbors import NearestNeighbors
+from data_preprocessing import load_and_merge_metadata
+from utils import save_model, load_model
+from recommender import get_recommendations
 
+def main():
+    """
+    Entry point for the recommendation system.
+    Loads data, prepares features, vectorizes soup, fits or loads NearestNeighbors model,
+    and provides movie recommendations.
+    """
+    # Define base paths
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = os.path.join(BASE_DIR, '../data')
+    MODEL_PATH = os.path.join(DATA_DIR, 'nn_model.joblib')
+    MATRIX_PATH = os.path.join(DATA_DIR, 'count_matrix.joblib')
 
-data_dir = '../data'
-tfidf_pickle_path = os.path.join(data_dir, 'tfidf_matrix.pkl')
-cosine_pickle_path = os.path.join(data_dir, 'cosine_sim_matrix.pkl')
-count_pickle_path = os.path.join(data_dir, 'count_matrix.pkl')
-cosine_count_pickle_path = os.path.join(data_dir, 'cosine_sim_count.pkl')
+    # Load metadata
+    metadata_path = os.path.join(DATA_DIR, 'movies_metadata.csv')
+    credits_path = os.path.join(DATA_DIR, 'credits.csv')
+    keywords_path = os.path.join(DATA_DIR, 'keywords.csv')
 
-metadata_path = '../data/movies_metadata.csv'
-credits_path = '../data/credits.csv'
-keywords_path = '../data/keywords.csv'
+    metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path)
 
-metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path)
+    if metadata is None or metadata.empty:
+        print("[ERROR] Failed to load metadata.")
+        return
 
-metadata = metadata.sample(5000, random_state=42).reset_index(drop=True)
+    # Create reverse index
+    indices = pd.Series(metadata.index, index=metadata['title']).drop_duplicates()
 
-features = ['cast', 'keywords', 'director', 'genres']
-for feature in features:
-    metadata[feature] = metadata[feature].apply(clean_data)
-
-metadata['soup'] = metadata.apply(create_soup, axis=1)
-indices = pd.Series(metadata.index, index=metadata['title']).drop_duplicates()
-
-method = 'metadata' # select method 'overview' or 'metadata'
-
-if method == 'overview':
-    tfidf_matrix = load_joblib(tfidf_pickle_path) # load or create TF-IDF matrix.
-    if tfidf_matrix is None:
-        print("[INFO] TF-IDF matrix not found. Computing and saving...")
-        tfidf_matrix = compute_tfidf_matrix(metadata, column='overview')
-        save_joblib(tfidf_matrix, tfidf_pickle_path)
-
-    # load or create cosine similarity matrix.
-    cosine_sim_matrix = load_joblib(cosine_pickle_path)
-    if cosine_sim_matrix is None:
-        print("[INFO] Cosine similarity matrix not found. Computing and saving...")
-        cosine_sim_matrix = compute_cosine_similarity_matrix(tfidf_matrix)
-        save_joblib(cosine_sim_matrix, cosine_pickle_path)
-
-else:  # method == 'metadata'
-    count_matrix = load_joblib(count_pickle_path)
+    # Vectorize soup (or load from file)
+    count_matrix = load_model(MATRIX_PATH)
     if count_matrix is None:
-        print("[INFO] Count vector matrix not found. Computing and saving...")
-        count_matrix = compute_count_vector_matrix(metadata, column='soup')
-        save_joblib(count_matrix, count_pickle_path)
+        count = CountVectorizer(stop_words='english')
+        count_matrix = count.fit_transform(metadata['soup'])
+        save_model(count_matrix, MATRIX_PATH)
 
-    cosine_sim_matrix = load_joblib(cosine_count_pickle_path)
-    if cosine_sim_matrix is None:
-        print("[INFO] Cosine similarity (count-based) not found. Computing and saving...")
-        cosine_sim_matrix = compute_cosine_similarity_matrix(count_matrix, use_linear_kernel=False)
-        save_joblib(cosine_sim_matrix, cosine_count_pickle_path)
+    # Load or fit NearestNeighbors model
+    nn_model = load_model(MODEL_PATH)
+    if nn_model is None:
+        nn_model = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=11, n_jobs=-1)
+        nn_model.fit(count_matrix)
+        save_model(nn_model, MODEL_PATH)
 
-# GET RECOMMENDATIONS.
-title = 'The Dark Knight Rises'
-recommended_movies = get_recommendations(title, cosine_sim_matrix, indices, metadata, top_n=10)
+    # Request recommendations
+    title = "The Dark Knight Rises"
+    if title not in indices:
+        print(f"[WARN] Movie '{title}' not found in dataset.")
+        return
 
-if recommended_movies is not None:
-    print(f"\n[RECOMMENDATIONS for '{title}']\n")
-    print(recommended_movies.to_string(index=False))
+    print(f"\n[INFO] Generating recommendations for: {title}\n")
+    recommendations = get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=10)
 
-
-# SHOW SOME FOR TESTING,
-print("\n[Sample Metadata Preview]")
-print(metadata[['title', 'cast', 'director', 'keywords', 'genres']].head(3).to_string(index=False))
-print("\n[Soup Column Preview]")
-print(metadata[['soup']].head(2).to_string(index=False))
+    # Print results
+    print("[RECOMMENDATIONS]")
+    print(recommendations.to_string(index=False))
 
 
-# [DEV ONLY]
-# aggregated_movies = load_or_create_aggregated_movies(data_dir, aggregated_file)
-#
-# if aggregated_movies is not None:
-#     top_movies = get_top_movies(aggregated_movies, top_n=15)
-#     print(top_movies.to_string(index=False))
+if __name__ == "__main__":
+    main()
