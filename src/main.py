@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import NearestNeighbors
-from data_preprocessing import load_and_merge_metadata, load_or_create_aggregated_movies
+from data_preprocessing import load_and_merge_metadata
 from utils import save_model, load_model
 from recommender import get_recommendations, get_top_movies
 from logging_config import setup_logging
@@ -33,15 +33,9 @@ def main():
         logger.error(" Failed to load metadata.")
         return
 
-        # Step 2: Create aggregated movie ratings or load existing data
-    aggregated_movies = load_or_create_aggregated_movies(DATA_DIR, os.path.join(DATA_DIR, 'aggregated_movie_ratings.csv'))
-
-    if aggregated_movies is None or aggregated_movies.empty:
-        logger.error("Failed to aggregate movie ratings.")
-        return
 
     # Step 3: Get top movies based on IMDb-style weighted rating
-    top_movies = get_top_movies(aggregated_movies)
+    top_movies = get_top_movies(metadata)
     logger.info("Top Movies based on weighted rating:")
     logger.info(top_movies.head(10).to_string(index=False))  # Printing top 10
 
