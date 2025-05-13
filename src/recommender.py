@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 from utils import save_model, load_model
 from logging_config import setup_logging
+from fuzzywuzzy import process
 
 logger = setup_logging()
 
@@ -98,4 +99,26 @@ def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=
     idx = indices[title]
     distances, neighbor_indices = nn_model.kneighbors(count_matrix[idx], n_neighbors=top_n + 1)
     recommended_indices = neighbor_indices.flatten()[1:]  # Exclude the queried movie itself
-    return metadata['title'].iloc[recommended_indices]
+    unique_recommendations = list(set(metadata['title'].iloc[recommended_indices]))
+    return pd.Series(unique_recommendations[:top_n])
+
+
+
+def fuzzy_search(query: str, metadata: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+    """
+    Patobulinta fuzzy paieška su išfiltruotais trumpais filmais ir išvalytais rezultatais.
+    """
+    query = query.strip()
+
+    if len(query) <= 3:
+        candidates = metadata['title']
+    else:
+        candidates = metadata[metadata['title'].str.len() > 3]['title']
+
+    raw_results = process.extract(query, candidates, limit=top_n)
+    results = [(title, score) for title, score, _ in raw_results]  # Pašalinam indeksą
+    matches = pd.DataFrame(results, columns=['title', 'score'])
+    matches = matches[matches['score'] > 70]
+
+    return matches.head(top_n)  # Limitavimo kodas
+

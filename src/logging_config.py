@@ -1,4 +1,5 @@
 import logging
+import sys
 
 def setup_logging():
     """
@@ -8,8 +9,8 @@ def setup_logging():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         level=logging.INFO,
         handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler('app.log')
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler('app.log', encoding="utf-8")
         ]
     )
     logger = logging.getLogger(__name__)

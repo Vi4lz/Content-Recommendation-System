@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import NearestNeighbors
 from data_preprocessing import load_and_merge_metadata
 from utils import save_model, load_model
-from recommender import get_recommendations, get_top_movies
+from recommender import get_recommendations, get_top_movies, fuzzy_search
 from logging_config import setup_logging
 
 logger = setup_logging()
@@ -56,19 +56,30 @@ def main():
         nn_model.fit(count_matrix)
         save_model(nn_model, MODEL_PATH)
 
-    # Request recommendations
-    title = "The Dark Knight Rises"
+    # ===================== Fuzzy Search Integration ======================
+    user_input = input("Įveskite filmo pavadinimą (ar jo dalį): ").strip()
+    matches = fuzzy_search(user_input, metadata)
+
+    if matches.empty:
+        logger.warning(f"Nerasta filmų panašių į: {user_input}")
+        return
+
+    logger.info(f"\nGalbūt turėjote omenyje:\n{matches.to_string(index=False)}\n")
+
+    # Naudojame geriausią (pirmą) rezultatą automatiškai
+    title = matches.iloc[0]['title']
+    logger.info(f"Pasirinktas pavadinimas rekomendacijoms: {title}")
+
+    # ===================== Generate Recommendations ======================
     if title not in indices:
-        logger.warning(f" Movie '{title}' not found in dataset.")
+        logger.warning(f"Movie '{title}' not found in dataset.")
         return
 
     logger.info(f"\nGenerating recommendations for: {title}\n")
     recommendations = get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=10)
 
-    # Print results
     logger.info("[RECOMMENDATIONS]")
     logger.info(recommendations.to_string(index=False))
-
 
 if __name__ == "__main__":
     main()
