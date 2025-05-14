@@ -7,7 +7,7 @@ from fuzzywuzzy import process
 logger = setup_logging()
 
 
-def get_top_movies(df, top_n=10, percentile=0.90):
+def get_top_movies(df, top_n=100, percentile=0.90):
     """
     Returns the top N movies ranked by IMDb-style weighted rating.
 
@@ -47,9 +47,6 @@ def train_model(count_matrix):
     """
     Trains a NearestNeighbors model using the given count matrix.
 
-    Args:
-        count_matrix (csr_matrix): CountVectorizer matrix of the 'soup' field.
-
     Returns:
         NearestNeighbors: Trained nearest neighbor model.
     """
@@ -62,10 +59,6 @@ def get_or_train_model(count_matrix, model_path):
     """
     Loads a trained NearestNeighbors model if it exists; otherwise trains and saves a new one.
 
-    Args:
-        count_matrix (csr_matrix): CountVectorizer matrix.
-        model_path (str): File path to store/load the trained model.
-
     Returns:
         NearestNeighbors: Trained model.
     """
@@ -77,9 +70,10 @@ def get_or_train_model(count_matrix, model_path):
     return model
 
 
-def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=10):
+def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=15):
     """
     Returns a list of top N movie recommendations based on a given title.
+    This function now also returns additional metadata for each recommended movie.
 
     Args:
         title (str): Movie title to base recommendations on.
@@ -90,23 +84,31 @@ def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=
         top_n (int): Number of recommendations to return.
 
     Returns:
-        pd.Series: Titles of the recommended movies.
+        pd.DataFrame: DataFrame with titles, release date, genres, and director of the recommended movies.
     """
     if title not in indices:
-        logger.warning(f" Movie '{title}' not found in dataset.")
-        return pd.Series(dtype=str)
+        logger.warning(f"Movie '{title}' not found in dataset.")
+        return pd.DataFrame()  # Returning empty DataFrame if no match found
 
     idx = indices[title]
     distances, neighbor_indices = nn_model.kneighbors(count_matrix[idx], n_neighbors=top_n + 1)
     recommended_indices = neighbor_indices.flatten()[1:]  # Exclude the queried movie itself
-    unique_recommendations = list(set(metadata['title'].iloc[recommended_indices]))
-    return pd.Series(unique_recommendations[:top_n])
 
+    recommended_titles = metadata['title'].iloc[recommended_indices].unique()
+
+    # Get additional details like release_date, genres, and director
+    recommendations_with_details = metadata[metadata['title'].isin(recommended_titles)].copy()
+
+    # Fill missing values with 'Unknown'
+    recommendations_with_details['release_date'] = recommendations_with_details['release_date'].fillna('Unknown')
+    recommendations_with_details['genres'] = recommendations_with_details['genres'].fillna('Unknown')
+
+    return recommendations_with_details[['title', 'release_date', 'genres']].head(top_n)
 
 
 def fuzzy_search(query: str, metadata: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     """
-    Patobulinta fuzzy paieška su išfiltruotais trumpais filmais ir išvalytais rezultatais.
+
     """
     query = query.strip()
 
@@ -116,9 +118,15 @@ def fuzzy_search(query: str, metadata: pd.DataFrame, top_n: int = 10) -> pd.Data
         candidates = metadata[metadata['title'].str.len() > 3]['title']
 
     raw_results = process.extract(query, candidates, limit=top_n)
-    results = [(title, score) for title, score, _ in raw_results]  # Pašalinam indeksą
+    results = [(title, score) for title, score, _ in raw_results]
     matches = pd.DataFrame(results, columns=['title', 'score'])
     matches = matches[matches['score'] > 70]
 
-    return matches.head(top_n)  # Limitavimo kodas
+    # Now, we also fetch 'genres' and 'release_date' based on the matched titles
+    matches_with_details = metadata[metadata['title'].isin(matches['title'])].copy()
+
+    # Merge the score with the matched results
+    matches_with_details = pd.merge(matches, matches_with_details, on='title')
+
+    return matches_with_details[['title', 'score', 'genres', 'release_date']].head(top_n)
 

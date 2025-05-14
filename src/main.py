@@ -56,21 +56,18 @@ def main():
         nn_model.fit(count_matrix)
         save_model(nn_model, MODEL_PATH)
 
-    # ===================== Fuzzy Search Integration ======================
-    user_input = input("Įveskite filmo pavadinimą (ar jo dalį): ").strip()
+    user_input = input("Enter a movie title: ").strip()
     matches = fuzzy_search(user_input, metadata)
 
     if matches.empty:
-        logger.warning(f"Nerasta filmų panašių į: {user_input}")
+        logger.warning(f"Similar movies not found: {user_input}")
         return
 
-    logger.info(f"\nGalbūt turėjote omenyje:\n{matches.to_string(index=False)}\n")
+    logger.info(f"\nMaby you had in mind:\n{matches.to_string(index=False)}\n")
 
-    # Naudojame geriausią (pirmą) rezultatą automatiškai
     title = matches.iloc[0]['title']
     logger.info(f"Pasirinktas pavadinimas rekomendacijoms: {title}")
 
-    # ===================== Generate Recommendations ======================
     if title not in indices:
         logger.warning(f"Movie '{title}' not found in dataset.")
         return

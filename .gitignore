@@ -21,4 +21,6 @@ venv/
 
 data/
 
+/content_recommendation_system/
+
 *.log
