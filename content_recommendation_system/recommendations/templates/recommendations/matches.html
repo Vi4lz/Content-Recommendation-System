@@ -1,0 +1,39 @@
+{% extends 'recommendations/base.html' %}
+
+{% block title %}Movie Matches - Content Recommendation System{% endblock %}
+
+{% load static %}
+
+{% block content %}
+    <h2>Find Movie Matches</h2>
+
+    <form method="POST" action="{% url 'matches' %}">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="movie_title" class="form-label">Enter a movie title to search our database.</label>
+        <input type="text" name="title" id="movie_title" class="form-control"
+               value="{% if form.title.value %}{{ form.title.value }}{% else %}{{ '' }}{% endif %}"
+               placeholder="Search for a movie...">
+    </div>
+    <button type="submit" class="btn btn-danger">Find Matches</button>
+    </form>
+
+
+
+    {% if query %}
+        <h3>Matches for "{{ query }}"</h3>
+
+        {% if matches %}
+            <ul class="list-group">
+                {% for match in matches %}
+                    <li class="list-group-item">
+                        <strong>{{ match.title }}</strong><br>
+                        <small>Genres: {{ match.genres }} | Release Date: {{ match.release_date }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>{{ message }}</p>
+        {% endif %}
+    {% endif %}
+{% endblock %}
