@@ -2,18 +2,21 @@ import os
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import NearestNeighbors
-from data_preprocessing import load_and_merge_metadata
+from src.data_preprocessing import load_and_merge_metadata
 from utils import save_model, load_model
 from recommender import get_recommendations, get_top_movies, fuzzy_search
 from logging_config import setup_logging
 
 logger = setup_logging()
 
-def main():
+def main() -> None:
     """
-    Entry point for the recommendation system.
-    Loads data, prepares features, vectorizes soup, fits or loads NearestNeighbors model,
-    and provides movie recommendations.
+    Main entry point for the movie recommendation system. This function loads the movie data,
+    prepares the features, fits or loads a NearestNeighbors model, and provides movie recommendations.
+    It logs every major step in the process for traceability.
+
+    Returns:
+        None
     """
     # Define base paths
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,14 +33,13 @@ def main():
     metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path, MERGED_CACHE_PATH)
 
     if metadata is None or metadata.empty:
-        logger.error(" Failed to load metadata.")
+        logger.error("Failed to load metadata.")
         return
 
-
-    # Step 3: Get top movies based on IMDb-style weighted rating
+    # Get top movies based on IMDb-style weighted rating
     top_movies = get_top_movies(metadata)
     logger.info("Top Movies based on weighted rating:")
-    logger.info(top_movies.head(10).to_string(index=False))  # Printing top 10
+    logger.info(top_movies.head(10).to_string(index=False))
 
     # Create reverse index
     indices = pd.Series(metadata.index, index=metadata['title']).drop_duplicates()
@@ -52,21 +54,22 @@ def main():
     # Load or fit NearestNeighbors model
     nn_model = load_model(MODEL_PATH)
     if nn_model is None:
+        logger.info("Training a new NearestNeighbors model...")
         nn_model = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=11, n_jobs=-1)
         nn_model.fit(count_matrix)
         save_model(nn_model, MODEL_PATH)
 
+    # Take user input for fuzzy search
     user_input = input("Enter a movie title: ").strip()
     matches = fuzzy_search(user_input, metadata)
 
     if matches.empty:
-        logger.warning(f"Similar movies not found: {user_input}")
+        logger.warning(f"Similar movies not found for '{user_input}'.")
         return
 
-    logger.info(f"\nMaby you had in mind:\n{matches.to_string(index=False)}\n")
-
+    logger.info(f"\nMaybe you had in mind:\n{matches.to_string(index=False)}\n")
     title = matches.iloc[0]['title']
-    logger.info(f"Pasirinktas pavadinimas rekomendacijoms: {title}")
+    logger.info(f"First match chosen: {title}")
 
     if title not in indices:
         logger.warning(f"Movie '{title}' not found in dataset.")
@@ -74,9 +77,9 @@ def main():
 
     logger.info(f"\nGenerating recommendations for: {title}\n")
     recommendations = get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=10)
-
     logger.info("[RECOMMENDATIONS]")
     logger.info(recommendations.to_string(index=False))
+
 
 if __name__ == "__main__":
     main()

@@ -1,12 +1,16 @@
 import logging
 import sys
+from logging import Logger
 
-def setup_logging():
+def setup_logging() -> Logger:
     """
-    Sets up logging configuration.
+    Sets up the logging configuration.
+
+    This function configures logging to print log messages to both the console (stdout)
+    and a log file ('app.log'). It sets the log level to INFO by default.
 
     Returns:
-        configurated settings for a logger.
+        Logger: The configured logger instance.
     """
     logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
