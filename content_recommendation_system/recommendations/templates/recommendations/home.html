@@ -1,0 +1,22 @@
+{% extends 'recommendations/base.html' %}
+
+{% block title %}Home - Content Recommendation System{% endblock %}
+
+{% load static %}
+
+{% block content %}
+    <div class="hero-section text-center">
+        <h2>Welcome to MovieMatch!</h2>
+        <p class="lead">Find the best movie recommendations tailored to your taste.</p>
+        <form method="GET" action="{% url 'recommend' %}">
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" name="title" placeholder="Enter movie title" aria-label="Enter movie title" required>
+                <button class="btn btn-danger" type="submit" style="margin-top: 8px;">Get Recommendations</button>
+            </div>
+        </form>
+    </div>
+    <div class="info-section text-center">
+        <h3>How it works?</h3>
+        <p>Enter a movie title and let us suggest similar movies based on ratings, genres, and your preferences.</p>
+    </div>
+{% endblock %}

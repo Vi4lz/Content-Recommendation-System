@@ -1,0 +1,36 @@
+{% extends 'recommendations/base.html' %}
+
+{% block title %}Recommendations - Content Recommendation System{% endblock %}
+
+{% load static %}
+
+{% block content %}
+    <h2 class="mb-4">Recommendations based on: "{{ title }}"</h2>
+
+    {% if recommendations %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for recommendation in recommendations %}
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ recommendation.title }}</h5>
+                            <p class="card-text mb-1">
+                                <strong>Release Date:</strong> {{ recommendation.release_date }}
+                            </p>
+                            <p class="card-text mb-1">
+                                <strong>Genres:</strong> {{ recommendation.genres }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+        </div>
+    {% else %}
+        <div class="alert alert-warning">No recommendations found.</div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">← Back to Home</a>
+    </div>
+{% endblock %}

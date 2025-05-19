@@ -1,0 +1,38 @@
+{% extends 'recommendations/base.html' %}
+
+{% block title %}Top Rated Movies - Content Recommendation System{% endblock %}
+
+{% load static %}
+
+{% block content %}
+    <h2 class="mb-4">Top Rated Movies</h2>
+
+    {% if top_movies %}
+        <div class="list-group">
+            {% for movie in top_movies %}
+                <div class="list-group-item d-flex justify-content-between align-items-start position-relative">
+                    <span class="badge
+                        {% if forloop.counter == 1 %}bg-warning text-dark{% elif forloop.counter == 2 %}bg-secondary text-white{% elif forloop.counter == 3 %}bg-bronze text-white{% else %}bg-danger text-white{% endif %}
+                        position-absolute"
+                        style="top: -15px; left: 15px; padding: 5px 10px; font-size: 1.25rem; z-index: 10;">
+                        #{{ forloop.counter }}
+                    </span>
+                    <div class="d-flex flex-column text-start w-75 ms-5 pt-2">
+                        <h5 class="mb-1" style="word-wrap: break-word;">{{ movie.title }}</h5>
+                        <small>Release Date: {{ movie.release_date }}</small>
+                    </div>
+                    <div class="text-end w-25">
+                        <p class="mb-1"><strong>Vote Count:</strong> {{ movie.vote_count }}</p>
+                        <p class="mb-1"><strong>Vote Average:</strong> {{ movie.vote_average }}</p>
+                        <p><strong>Weighted Rating:</strong> {{ movie.weighted_rating|floatformat:1 }}</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">No top-rated movies found.</div>
+    {% endif %}
+    <div class="mt-4">
+        <a href="{% url 'home' %}" class="btn btn-outline-primary">← Back to Home</a>
+    </div>
+{% endblock %}
