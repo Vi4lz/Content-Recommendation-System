@@ -6,6 +6,7 @@ from data_preprocessing import load_and_merge_metadata
 from utils import save_model, load_model
 from recommender import get_recommendations, get_top_movies, fuzzy_search
 from logging_config import setup_logging
+from config import  BASE_DIR, DATA_DIR, MERGED_CACHE_PATH, MATRIX_PATH, MODEL_PATH
 
 logger = setup_logging()
 
@@ -16,25 +17,22 @@ def main():
     and provides movie recommendations.
     """
     # Define base paths
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATA_DIR = os.path.join(BASE_DIR, '../data')
-    MERGED_CACHE_PATH = os.path.join(DATA_DIR, 'merged_metadata.csv')
-    MODEL_PATH = os.path.join(DATA_DIR, 'nn_model.joblib')
-    MATRIX_PATH = os.path.join(DATA_DIR, 'count_matrix.joblib')
 
-    # Load metadata
+    # Define raw data paths
     metadata_path = os.path.join(DATA_DIR, 'movies_metadata.csv')
     credits_path = os.path.join(DATA_DIR, 'credits.csv')
     keywords_path = os.path.join(DATA_DIR, 'keywords.csv')
+    zip_path = os.path.join(DATA_DIR, 'raw_data.zip')
+    extract_to = DATA_DIR
 
-    metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path, MERGED_CACHE_PATH)
+    # Load metadata
+    metadata = load_and_merge_metadata(metadata_path, credits_path, keywords_path, MERGED_CACHE_PATH, zip_path, extract_to)
 
     if metadata is None or metadata.empty:
-        logger.error(" Failed to load metadata.")
+        logger.error("Failed to load metadata.")
         return
 
-
-    # Step 3: Get top movies based on IMDb-style weighted rating
+    # Get top movies based on IMDb-style weighted rating
     top_movies = get_top_movies(metadata)
     logger.info("Top Movies based on weighted rating:")
     logger.info(top_movies.head(10).to_string(index=False))  # Printing top 10
@@ -63,10 +61,10 @@ def main():
         logger.warning(f"Similar movies not found: {user_input}")
         return
 
-    logger.info(f"\nMaby you had in mind:\n{matches.to_string(index=False)}\n")
+    logger.info(f"\nMaybe you had in mind:\n{matches.to_string(index=False)}\n")
 
     title = matches.iloc[0]['title']
-    logger.info(f"Pasirinktas pavadinimas rekomendacijoms: {title}")
+    logger.info(f"Chosen Movie: {title}")
 
     if title not in indices:
         logger.warning(f"Movie '{title}' not found in dataset.")

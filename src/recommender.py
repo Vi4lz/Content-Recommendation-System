@@ -39,7 +39,7 @@ def get_top_movies(df, top_n=100, percentile=0.90):
 
     qualified['weighted_rating'] = qualified.apply(weighted_rating, axis=1)
     return qualified.sort_values('weighted_rating', ascending=False).head(top_n)[
-        ['title', 'vote_count', 'vote_average', 'weighted_rating']
+        ['title', 'vote_count', 'vote_average', 'weighted_rating', 'release_date']
     ]
 
 
@@ -99,16 +99,27 @@ def get_recommendations(title, nn_model, metadata, indices, count_matrix, top_n=
     # Get additional details like release_date, genres, and director
     recommendations_with_details = metadata[metadata['title'].isin(recommended_titles)].copy()
 
-    # Fill missing values with 'Unknown'
+
     recommendations_with_details['release_date'] = recommendations_with_details['release_date'].fillna('Unknown')
-    recommendations_with_details['genres'] = recommendations_with_details['genres'].fillna('Unknown')
+    recommendations_with_details['genres'] = recommendations_with_details['genres'].astype(str)
+    recommendations_with_details['genres'] = recommendations_with_details['genres'].str.replace(r"[\[\]']", '',
+                                                                                                regex=True)
+    recommendations_with_details['genres'] = recommendations_with_details['genres'].replace('', 'Unknown')
 
     return recommendations_with_details[['title', 'release_date', 'genres']].head(top_n)
 
 
 def fuzzy_search(query: str, metadata: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     """
+    Performs fuzzy search to find movies in the metadata that closely match the input query.
 
+    Args:
+        query (str): User input or partial movie title to search for.
+        metadata (pd.DataFrame): Movie metadata containing at least 'title', 'genres', and 'release_date'.
+        top_n (int, optional): Maximum number of results to return. Defaults to 10.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the top matching movie titles.
     """
     query = query.strip()
 
@@ -124,6 +135,11 @@ def fuzzy_search(query: str, metadata: pd.DataFrame, top_n: int = 10) -> pd.Data
 
     # Now, we also fetch 'genres' and 'release_date' based on the matched titles
     matches_with_details = metadata[metadata['title'].isin(matches['title'])].copy()
+
+    matches_with_details['genres'] = matches_with_details['genres'].astype(str)
+    matches_with_details['genres'] = matches_with_details['genres'].str.replace(r"[\[\]']", '',
+                                                                                                regex=True)
+    matches_with_details['genres'] = matches_with_details['genres'].replace('', 'Unknown')
 
     # Merge the score with the matched results
     matches_with_details = pd.merge(matches, matches_with_details, on='title')

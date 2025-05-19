@@ -20,7 +20,6 @@ venv/
 .ipynb_checkpoints/
 
 data/
-
-/content_recommendation_system/
+!data/raw_data.zip
 
 *.log

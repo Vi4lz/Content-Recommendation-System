@@ -6,7 +6,7 @@ def setup_logging():
     Sets up logging configuration.
 
     Returns:
-        configurated settings for a logger.
+        Configurated logger.
     """
     logging.basicConfig(
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

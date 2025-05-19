@@ -8,7 +8,13 @@ logger = setup_logging()
 
 def safe_literal_eval(val):
     """
-    A safer version of literal_eval that returns an empty list if parsing fails.
+    Safely evaluates a string representation of a Python literal structure (e.g. list, dict).
+
+    Args:
+        val (str): String to be evaluated.
+
+    Returns:
+        list: Parsed list if successful, otherwise an empty list.
     """
     if isinstance(val, str):
         try:
@@ -21,6 +27,12 @@ def safe_literal_eval(val):
 def clean_data(x):
     """
     Cleans input data by removing spaces and converting text to lowercase.
+
+    Args:
+        x (list or str): A list of strings or a single string to be cleaned.
+
+    Returns:
+        list or str: Cleaned list of strings or cleaned single string. Returns empty string for invalid input.
     """
     if isinstance(x, list):
         return [str.lower(i.replace(" ", "")) for i in x if isinstance(i, str)]
@@ -32,7 +44,13 @@ def clean_data(x):
 
 def get_director(x):
     """
-    Extracts director's name from the crew list.
+    Extracts the director's name from a list of crew members.
+
+    Args:
+        x (list): List of crew member dictionaries.
+
+    Returns:
+        str or np.nan: Name of the director if found, otherwise NaN.
     """
     for i in x:
         if i['job'] == 'Director':
@@ -43,6 +61,12 @@ def get_director(x):
 def get_list(x):
     """
     Returns a list of names, limiting to top 3.
+
+    Args:
+        x (list): List of dictionaries containing 'name' key.
+
+    Returns:
+        list: List of up to 3 names.
     """
     if isinstance(x, list):
         names = [i['name'] for i in x]
