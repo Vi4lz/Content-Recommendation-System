@@ -38,12 +38,27 @@ def extract_raw_data(zip_path, extract_to):
         raise
 
 
-# Function to create 'soup' by combining cast, keywords, director, and genres
 def create_soup(x):
+    """
+    Combines keywords, cast, director, and genres into a single string
+    for text-based similarity.
+
+    Args:
+        x (pd.Series): Movie metadata row with required fields.
+
+    Returns:
+        str: Concatenated text string for vectorization.
+    """
     return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
 
 
-def load_and_merge_metadata(metadata_path, credits_path, keywords_path, merged_cache_path='merged_metadata.csv', zip_path=None, extract_to=None):
+def load_and_merge_metadata(
+        metadata_path,
+        credits_path,
+        keywords_path,
+        merged_cache_path='merged_metadata.csv',
+        zip_path=None,
+        extract_to=None):
     """
     Loads and merges movie metadata, credits, and keywords datasets.
     Performs data merging and stores the processed dataset.
@@ -81,14 +96,14 @@ def load_and_merge_metadata(metadata_path, credits_path, keywords_path, merged_c
 
         # Load datasets
         metadata = pd.read_csv(metadata_path, low_memory=False)
-        credits = pd.read_csv(credits_path)
+        credits_df = pd.read_csv(credits_path)
         keywords = pd.read_csv(keywords_path)
 
         # Clean metadata
         metadata = clean_metadata(metadata)
 
         # Merge datasets on 'id'
-        metadata = metadata.merge(credits, on='id', how='left')
+        metadata = metadata.merge(credits_df, on='id', how='left')
         metadata = metadata.merge(keywords, on='id', how='left')
 
         # Clean features: 'cast', 'crew', 'keywords', 'genres'
