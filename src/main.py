@@ -16,7 +16,6 @@ def main():
     Loads data, prepares features, vectorizes soup, fits or loads NearestNeighbors model,
     and provides movie recommendations.
     """
-    # Define base paths
 
     # Define raw data paths
     metadata_path = os.path.join(DATA_DIR, 'movies_metadata.csv')

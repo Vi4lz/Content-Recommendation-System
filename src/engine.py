@@ -33,7 +33,7 @@ def load_resources():
     metadata_path = os.path.join(DATA_DIR, 'movies_metadata.csv')
     credits_path = os.path.join(DATA_DIR, 'credits.csv')
     keywords_path = os.path.join(DATA_DIR, 'keywords.csv')
-    zip_path = os.path.join(DATA_DIR, 'raw_data.zip')  # pridėta
+    zip_path = os.path.join(DATA_DIR, 'raw_data.zip')
     extract_to = DATA_DIR
 
     metadata = load_and_merge_metadata(

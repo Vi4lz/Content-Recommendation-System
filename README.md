@@ -15,7 +15,7 @@ This project is a **content-based movie recommendation system** that:
 
 
 ## 🧱 Project Structure
-
+```
 ContentRecommendationSystem/
 │
 ├── data/ → CSV files and pre-trained models (joblib)
@@ -27,7 +27,7 @@ ContentRecommendationSystem/
 ├── content_recommendation_system/
 │ ├── recommendations/ → Django application (views, forms, templates)
 │ └── manage.py → Django management script
-
+```
 
 ---
 
@@ -99,7 +99,8 @@ Follow these steps to set up and run the project locally:
     ```bash
     python -m venv venv
     source venv/bin/activate        # Linux/Mac
-    venv\Scripts\activate           # Windows
+    venv\Scripts\activate.bat        # Windows CMD
+    .\venv\Scripts\Activate.ps1      # Windows PowerShell      
    
 3. **Install dependencies**
     ```bash
@@ -110,7 +111,7 @@ Follow these steps to set up and run the project locally:
     cd content_recommendation_system
     python manage.py runserver
 
-5. **Acces in your browser**
+5. **Access in your browser**
     http://127.0.0.1:8000    
 
 Ensure you have raw_data.zip placed in the data/ folder. 
