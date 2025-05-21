@@ -23,8 +23,8 @@ def get_top_movies(df, top_n=100, percentile=0.90):
         logger.warning("Input DataFrame is empty. Returning empty result.")
         return pd.DataFrame()
 
-    C = df['vote_average'].mean()
-    m = df['vote_count'].quantile(percentile)
+    C = df['vote_average'].mean()  # All movies average score
+    m = df['vote_count'].quantile(percentile) # Minimum requirement of votes (90%)
 
     qualified = df[df['vote_count'] >= m].copy()
 
@@ -33,8 +33,8 @@ def get_top_movies(df, top_n=100, percentile=0.90):
         return pd.DataFrame()
 
     def weighted_rating(x, m=m, C=C):
-        v = x['vote_count']
-        R = x['vote_average']
+        v = x['vote_count'] # Single movie vote count
+        R = x['vote_average'] # Single movie vote average
         return (v / (v + m) * R) + (m / (v + m) * C)
 
     qualified['weighted_rating'] = qualified.apply(weighted_rating, axis=1)

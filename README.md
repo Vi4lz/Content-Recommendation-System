@@ -163,3 +163,5 @@ Ensure these packages are installed (via requirements.txt):
 🤖 Author
 
 Built by Šarūnas Tumasonis as a final 'Python' course project - ""Content Recommendation System"
+
+Contact me @ = saris.tumas@gmail.com
